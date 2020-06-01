@@ -33,16 +33,17 @@ Application uses the SAM Model for deployment
 # Deployment
 
 To deploy run the script `deploy.sh` from the command line and have the AWS CLI set up correctly.
+`sh deploy.sh`
 You can change the aws-profile as per your account.
+
 Deployment steps in shell script :
 
-> First you need to create a bucket by this name ${ACCOUNT_ID}-sam-deploy-${AWS_REGION}
-> Next Step is to install dependencies in backend
-> Then copy the swagger.yaml file to s3 :  `aws s3 cp backend/swagger.yaml s3://${SAM_BUCKET}/${STACK_NAME}/swagger.yaml`
->  Packaging Cloudformation template : `aws cloudformation package --template-file cfn.yaml --s3-bucket ${SAM_BUCKET} --s3-prefix ${STACK_NAME} --output-template-file cfn.packaged.yaml`
-> Deployment of Cloudformation template : `aws cloudformation deploy --profile puneet --template-file cfn.packaged.yaml --stack-name aws-challenge --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset`
-> Install dependencies and run build for reactJS
-> Sync FE with s3 bucket
-> Get the cloudfront URL.
+1 First you need to create a bucket by this name ${ACCOUNT_ID}-sam-deploy-${AWS_REGION}
+2 Next Step is to install dependencies in backend
+3 Then copy the swagger.yaml file to s3 :  `aws s3 cp backend/swagger.yaml s3://${SAM_BUCKET}/${STACK_NAME}/swagger.yaml`
+4  Packaging Cloudformation template : `aws cloudformation package --template-file cfn.yaml --s3-bucket ${SAM_BUCKET} --s3-prefix ${STACK_NAME} --output-template-file cfn.packaged.yaml`
+5 Deployment of Cloudformation template : `aws cloudformation deploy --profile puneet --template-file cfn.packaged.yaml --stack-name aws-challenge --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset`
+6 Install dependencies and run build for reactJS
+7 Sync FE with s3 bucket
+8 Get the cloudfront URL.
 
-sh deploy.sh
