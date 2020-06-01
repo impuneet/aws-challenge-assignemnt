@@ -7,6 +7,8 @@ The frontend is written using ReactJS
 
 ![Architecture](architecture.png)
 
+LIVE DEMO : https://d1d5cgr5mps499.cloudfront.net/
+
 ## AWS Services used
 
 * AWS Lambda - to provide the functionality
