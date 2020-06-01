@@ -1,0 +1,104 @@
+openapi: 3.0.0
+info:
+  version: '1.0'
+  title: Serverless Todo
+paths:
+  /todos:
+    post:
+      x-amazon-apigateway-integration:
+        httpMethod: POST 
+        type: aws_proxy
+        uri:
+          'Fn::Sub': "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiAddTodoFunction.Arn}/invocations"
+      responses:
+        '201':
+          $ref: '#/components/responses/ToDo'
+      requestBody:
+        $ref: '#/components/requestBodies/ToDo'
+    get:
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          'Fn::Sub': "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiListTodosFunction.Arn}/invocations"
+      responses:
+        '200':
+          $ref: '#/components/responses/ToDoList'
+  '/todos/{id}':
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The id of the task
+    put:
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          'Fn::Sub': "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiUpdateTodoFunction.Arn}/invocations"
+      responses:
+        '200':
+          $ref: '#/components/responses/ToDo'
+      requestBody:
+        $ref: '#/components/requestBodies/ToDo'
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The id of the task
+    delete:
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          'Fn::Sub': "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiDeleteTodoFunction.Arn}/invocations"
+      responses:
+        '200':
+          $ref: '#/components/responses/ToDo'
+      requestBody:
+        $ref: '#/components/requestBodies/ToDo'
+components:
+  responses:
+    ToDo:
+      description: A single ToDo entry
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ToDo'
+    ToDoList:
+      description: A list of ToDo entries
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ToDo'
+  requestBodies:
+    ToDo:
+      description: A single ToDo entry
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ToDo'
+  schemas:
+    ToDo:
+      type: object
+      description: A ToDo entry
+      properties:
+        id:
+          type: string
+          description: The id of the task
+        title:
+          type: string
+          description: The task title
+        status:
+          type: string
+          description: The state of the task
+          enum:
+            - OPEN
+            - IN_PROGRESS
+            - DONE

@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Todo list
+Globals:
+  Function:
+    Runtime: nodejs12.x
+    Timeout: 10
+    MemorySize: 512
+Resources:
+  TodoTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  ApiListTodosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/index.apiGetTodos
+      CodeUri: ./backend/dist/bundle.zip
+      Tracing: Active
+      Policies:
+        Statement:
+          - Effect: "Allow"
+            Action: "dynamodb:Scan"
+            Resource:
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}/index/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodoTable
+      Events:
+        ListDevices:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /todos
+            Method: get
+  ApiUpdateTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/index.apiUpdateTodo
+      CodeUri: ./backend/dist/bundle.zip
+      Tracing: Active
+      Policies:
+        Statement:
+          - Effect: "Allow"
+            Action: "dynamodb:PutItem"
+            Resource:
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}/index/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodoTable
+      Events:
+        ListDevices:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /todos/{id}
+            Method: put
+  ApiDeleteTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/index.apiDeleteTodo
+      CodeUri: ./backend/dist/bundle.zip
+      Tracing: Active
+      Policies:
+        Statement:
+          - Effect: "Allow"
+            Action: "dynamodb:DeleteItem"
+            Resource:
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}/index/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodoTable
+      Events:
+        ListDevices:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /todos/{id}
+            Method: DELETE
+  ApiAddTodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/index.apiAddTodo
+      CodeUri: ./backend/dist/bundle.zip
+      Tracing: Active
+      Policies:
+        Statement:
+          - Effect: "Allow"
+            Action: "dynamodb:PutItem"
+            Resource:
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}
+            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TodoTable}/index/*
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodoTable
+      Events:
+        ListDevices:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /todos
+            Method: post
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: !Sub s3://${AWS::AccountId}-sam-deploy-${AWS::Region}/${AWS::StackName}/swagger.yaml
+
+  WebappBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+  S3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref WebappBucket
+      PolicyDocument:
+        Statement:
+          - Action: 's3:GetObject'
+            Effect: Allow
+            Resource: !Sub arn:aws:s3:::${WebappBucket}/*
+            Principal:
+              CanonicalUser: !GetAtt OriginAccessIdentity.S3CanonicalUserId
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref AWS::StackName
+
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        Comment: AWS UGS Todo
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        Origins:
+          - DomainName: !Sub ${WebappBucket}.s3.amazonaws.com
+            Id: s3origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
+          - DomainName: !Sub ${RestApi}.execute-api.${AWS::Region}.amazonaws.com
+            OriginPath: /Prod
+            Id: apiOrigin
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          DefaultTTL: 0
+          MinTTL: 0
+          MaxTTL: 0
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          TargetOriginId: s3origin
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+          - AllowedMethods:
+            - GET
+            - PUT
+            - POST
+            - HEAD
+            - DELETE
+            - OPTIONS
+            - PATCH
+            TargetOriginId: apiOrigin
+            DefaultTTL: 0
+            MinTTL: 0
+            MaxTTL: 0
+            ForwardedValues:
+              QueryString: true
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: redirect-to-https
+            PathPattern: /todos*
+        Enabled: true
+        PriceClass: PriceClass_All
+
+Outputs:
+  ApiUrl:
+    Description: URL of the API endpoint
+    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+  WebUrl:
+    Description: URL of the Web endpoint
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+  WebappBucket:
+    Description: The S3 bucket containing the SPA
+    Value: !Ref WebappBucket
+  CloudFrontDistribution:
+    Description: The CloudFront distribution used as endpoint
+    Value: !Ref CloudFrontDistribution
