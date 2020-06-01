@@ -25,6 +25,7 @@ class TodoList extends Component {
         if(item){
             console.log(item,i);
             API.delete(item.id,item).then(response => {
+
                 console.log(response);
                 this.refersh();
             }).catch(err => {
@@ -35,9 +36,10 @@ class TodoList extends Component {
 
     refersh = () => {
         API.getAll().then(response => {
-            this.setState({
-                items : response.data
-            });
+            this.props.onItemChange(response.data);
+           /*  React.renderComponent(
+                TodoList({items : response.data})
+            ); */
         }).catch(err => {
             console.log(err);
         })

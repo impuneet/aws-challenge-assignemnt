@@ -46,6 +46,13 @@ class App extends Component {
         })
     }
 
+
+    onChange = (newName) => {
+        console.log(newName);
+        this.setState({ items: newName });
+    }
+
+
     handleSubmit(e) {
         e.preventDefault(); 
         console.log(this.state.noteText.length);
@@ -86,7 +93,7 @@ class App extends Component {
                     <div className="col-md-4"></div>
                     <div className="col-md-4"></div>
                 </div>
-                <TodoList   items={this.state.items} ></TodoList>
+                <TodoList  onItemChange={this.onChange}   items={this.state.items} ></TodoList>
             </div>
         );
     }
